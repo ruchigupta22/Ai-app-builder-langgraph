@@ -1,0 +1,141 @@
+:root {
+  /* Color palette */
+  --color-bg: #f5f5f5;
+  --color-primary: #ffffff;
+  --color-operator: #ff9500;
+  --color-clear: #d9534f;
+  --color-equals: #5cb85c;
+  --color-display-bg: #eaeaea;
+  --color-display-text: #333333;
+  --color-button-text: #212529;
+  --color-button-bg: #ffffff;
+  --color-button-border: #cccccc;
+
+  /* Typography */
+  --font-size-base: 1rem; /* 16px */
+  --font-size-display: 2.5rem;
+  --font-size-button: 1.25rem;
+
+  /* Spacing */
+  --spacing: 0.5rem;
+}
+
+/* Global reset */
+html {
+  box-sizing: border-box;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+*, *::before, *::after {
+  box-sizing: inherit;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-display-text);
+}
+
+/* Calculator container – centered using Flexbox */
+.calculator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh; /* full viewport height */
+  width: 100%;
+  max-width: 400px;
+  padding: var(--spacing);
+  background: var(--color-primary);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin: 0 auto;
+}
+
+/* Display */
+.display {
+  width: 100%;
+  background: var(--color-display-bg);
+  color: var(--color-display-text);
+  font-family: "Courier New", Courier, monospace;
+  font-size: var(--font-size-display);
+  text-align: right;
+  padding: calc(var(--spacing) * 1.5);
+  border: 1px solid var(--color-button-border);
+  border-radius: 0.5rem;
+  box-sizing: border-box;
+  margin-bottom: var(--spacing);
+  overflow-x: auto;
+  /* Responsive scaling */
+  font-size: clamp(1.5rem, 5vw, var(--font-size-display));
+}
+
+/* Buttons grid */
+.buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing);
+  width: 100%;
+}
+
+/* Base button style */
+.buttons-grid button {
+  font-size: var(--font-size-button);
+  padding: calc(var(--spacing) * 1.2);
+  background: var(--color-button-bg);
+  color: var(--color-button-text);
+  border: 1px solid var(--color-button-border);
+  border-radius: 0.4rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  user-select: none;
+}
+
+.buttons-grid button:hover {
+  background: #f0f0f0;
+}
+
+.buttons-grid button:focus {
+  outline: 2px solid var(--color-operator);
+  outline-offset: 2px;
+}
+
+.buttons-grid button:active {
+  transform: translateY(1px);
+}
+
+/* Operator buttons */
+.buttons-grid button[data-type="operator"] {
+  background: var(--color-operator);
+  color: #ffffff;
+}
+
+/* Clear button */
+.buttons-grid button[data-type="clear"] {
+  background: var(--color-clear);
+  color: #ffffff;
+}
+
+/* Equals button */
+.buttons-grid button[data-type="equals"] {
+  background: var(--color-equals);
+  color: #ffffff;
+  grid-column: span 2; /* larger target */
+}
+
+/* Responsive adjustments for small screens */
+@media (max-width: 480px) {
+  .calculator {
+    padding: calc(var(--spacing) * 0.8);
+  }
+
+  .display {
+    font-size: 1.8rem;
+    padding: calc(var(--spacing) * 1);
+  }
+
+  .buttons-grid button {
+    font-size: 1rem;
+    padding: calc(var(--spacing) * 0.8);
+  }
+}
