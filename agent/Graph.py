@@ -7,6 +7,7 @@ from langgraph.prebuilt import create_react_agent
 from prompt import *
 from states import *
 from tools import write_file, read_file, get_current_directory, list_files
+from reviewer import reviewer_agent
 from langgraph.constants import END
 from langgraph.graph import StateGraph
 
@@ -76,21 +77,23 @@ graph = StateGraph(dict)
 graph.add_node("planner", planner_agent)
 graph.add_node("architect", architect_agent)
 graph.add_node("coder", coder_agent)
+graph.add_node("reviewer", reviewer_agent)
 
 graph.add_edge("planner", "architect")
 graph.add_edge("architect", "coder")
 graph.add_conditional_edges(
     "coder",
-    lambda s: "END" if s.get("status") == "DONE" else "coder",
-    {"END": END, "coder": "coder"}
+    lambda s: "reviewer" if s.get("status") == "DONE" else "coder",
+    {"reviewer": "reviewer", "coder": "coder"}
 )
+graph.add_edge("reviewer", END)
 
 graph.set_entry_point("planner")
 
 
 agent = graph.compile()
 
-user_prompt="create a simple calculator web application"
+user_prompt = "Create a simple Flappy Bird style browser game using HTML, CSS, and JavaScript with canvas. The bird falls due to gravity and flaps upward on click or spacebar. Pipes scroll from right to left with gaps to fly through. Track and display the score, and show a game over screen with a restart button on collision."
 
 result = agent.invoke({"user_prompt":user_prompt}, {"recursion_limit": 100})
 print(result)
