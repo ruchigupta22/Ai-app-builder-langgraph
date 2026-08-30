@@ -61,3 +61,16 @@ def list_runs(limit: int = 20) -> list[dict]:
     rows = conn.execute("SELECT id, prompt, status, created_at FROM runs ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
     conn.close()
     return [dict(row) for row in rows]
+def get_metrics() -> dict:
+    """Aggregates basic stats across all runs for a lightweight observability endpoint."""
+    conn = sqlite3.connect(DB_PATH)
+    total = conn.execute("SELECT COUNT(*) FROM runs").fetchone()[0]
+    by_status = conn.execute("SELECT status, COUNT(*) FROM runs GROUP BY status").fetchall()
+    conn.close()
+
+    status_counts = {status: count for status, count in by_status}
+
+    return {
+        "total_runs": total,
+        "runs_by_status": status_counts,
+    }

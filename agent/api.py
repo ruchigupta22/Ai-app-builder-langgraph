@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from Graph import run_agent
-from db import init_db, save_run, get_run, list_runs
+from db import init_db, save_run, get_run, list_runs, get_metrics
 
 app = FastAPI(title="AI App Builder API")
 init_db()
@@ -20,6 +20,10 @@ class GenerateResponse(BaseModel):
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.get("/metrics")
+def get_metrics_endpoint():
+    return get_metrics()
 
 
 @app.post("/generate", response_model=GenerateResponse)
