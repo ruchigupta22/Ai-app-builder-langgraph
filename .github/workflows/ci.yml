@@ -21,7 +21,7 @@ jobs:
         run: uv python install 3.11
 
       - name: Install dependencies
-        run: uv sync --all-groups
+        run: uv sync
 
       - name: Debug - list installed packages
         run: uv pip list
