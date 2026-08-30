@@ -13,3 +13,4 @@ wheels/
 
 # IDE files
 .idea/
+agent/runs.db
