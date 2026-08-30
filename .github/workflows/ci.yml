@@ -21,7 +21,10 @@ jobs:
         run: uv python install 3.11
 
       - name: Install dependencies
-        run: uv sync --frozen --all-groups
+        run: uv sync --all-groups
+
+      - name: Debug - list installed packages
+        run: uv pip list
 
       - name: Run tests
         working-directory: agent
