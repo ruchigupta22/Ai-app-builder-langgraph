@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ai-app-builder-monitor
+  namespace: default
+  labels:
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: ai-app-builder
+  endpoints:
+    - port: http
+      path: /prometheus-metrics
+      interval: 15s
