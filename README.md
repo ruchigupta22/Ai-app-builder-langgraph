@@ -1,6 +1,6 @@
 # AI App Builder — Multi-Agent System (LangGraph)
 
-A multi-agent AI system that transforms a natural language prompt into a working web application. It orchestrates four LangGraph agents — Planner, Architect, Coder, and Reviewer — and is wrapped in a production-style FastAPI service with structured logging, retry logic, SQLite persistence, Docker containerization, CI/CD, and a live Azure deployment.
+A multi-agent AI system that transforms a natural language prompt into a working web application. It orchestrates four LangGraph agents — Planner, Architect, Coder, and Reviewer — and is wrapped in a production-style FastAPI service with structured logging, retry logic, SQLite persistence, Docker containerization, CI/CD, Kubernetes deployment with observability, scheduled workflow orchestration, and infrastructure-as-code.
 
 ## Architecture
 
@@ -15,7 +15,6 @@ Coder Agent (loops through tasks, writes files via tool calls)
 Reviewer Agent (validates every file exists and parses correctly)
 ↓
 FastAPI Response (persisted to SQLite)
-
 
 - **Planner** converts the user's prompt into a structured `Plan` (name, description, tech stack, features, files) using an LLM with Pydantic-enforced structured output.
 - **Architect** expands the `Plan` into a `TaskPlan` — a list of file-level implementation tasks with dependencies and integration details.
@@ -32,11 +31,12 @@ FastAPI Response (persisted to SQLite)
 - SQLite persistence layer storing every run's prompt, plan, review report, and status
 - Dockerized and deployable as a standalone container
 - GitHub Actions CI pipeline running the full test suite on every push
-- Live deployment on Azure Container Instances
+- Deployed on Kubernetes (AKS) with multi-replica scheduling, health probes, and self-healing
+- Prometheus/Grafana observability and a scheduled Airflow reprocessing workflow
 
 ## Tech Stack
 
-Python · LangGraph · LangChain · Groq · FastAPI · Pydantic · SQLite · pytest · Docker · GitHub Actions · Azure Container Instances
+Python · LangGraph · LangChain · Groq · FastAPI · Pydantic · SQLite · pytest · Docker · GitHub Actions · Kubernetes (AKS) · Prometheus · Grafana · Helm · Apache Airflow · Terraform · Azure
 
 ## Getting Started
 
@@ -54,8 +54,9 @@ uv sync
 
 Create a `.env` file inside `agent/`:
 
+```
 GROQ_API_KEY=your_key_here
-
+```
 
 ### Run Locally
 ```bash
@@ -72,12 +73,14 @@ docker run -p 8000:8000 --env-file .env ai-app-builder
 
 ## API Endpoints
 
-| Method | Path            | Description                                  |
-|--------|-----------------|-----------------------------------------------|
-| GET    | `/health`       | Health check                                  |
-| POST   | `/generate`     | Runs the full agent pipeline for a prompt     |
-| GET    | `/runs`         | Lists recent runs                             |
-| GET    | `/runs/{id}`    | Fetches full details of a specific run        |
+| Method | Path                 | Description                                  |
+|--------|----------------------|-----------------------------------------------|
+| GET    | `/health`            | Health check                                  |
+| POST   | `/generate`          | Runs the full agent pipeline for a prompt     |
+| GET    | `/runs`              | Lists recent runs                             |
+| GET    | `/runs/{id}`         | Fetches full details of a specific run        |
+| GET    | `/metrics`           | JSON summary of run counts by status          |
+| GET    | `/prometheus-metrics`| Prometheus-format metrics (request counts, latency, agent run outcomes) |
 
 ## Testing
 
@@ -94,7 +97,19 @@ GitHub Actions runs the full test suite on every push to `main` and every pull r
 
 ## Deployment
 
-Containerized with Docker and deployed on Azure Container Instances (ACI) — chosen over AKS/App Service to avoid unnecessary orchestration complexity for a single-container service.
+Deployed on Azure Kubernetes Service (AKS) — a single-node cluster (`standard_b2s_v2`) running a 2-replica Deployment with liveness/readiness probes, ConfigMap/Secret-based configuration, and a LoadBalancer Service exposing the app publicly. Container images are built via Docker and pushed to Azure Container Registry (ACR), with AKS pulling images directly via an attached ACR identity.
+
+**Self-healing verified**: deleting a running pod resulted in a replacement pod reaching `Running` state in ~2 seconds, with zero request downtime across the deployment's second replica.
+
+Originally deployed on Azure Container Instances (ACI) for simplicity; migrated to AKS to add genuine container-orchestration depth — multi-replica scheduling, health probes, and self-healing that ACI's single-container model doesn't provide.
+
+Infrastructure (resource group, ACR, AKS cluster) is also defined as code in `terraform/main.tf`, imported from the existing manually-provisioned resources via `terraform import` and verified with `terraform plan`.
+
+## Observability
+
+- **Prometheus + Grafana** (installed via Helm's `kube-prometheus-stack`) monitor the deployed service. A custom `/prometheus-metrics` endpoint (using `prometheus-client`) exposes request counts, request latency, and agent-run outcomes, scraped every 15 seconds via a Kubernetes `ServiceMonitor`.
+- A Grafana dashboard visualizes request rate by endpoint from real production traffic.
+- **Scheduled reprocessing via Apache Airflow**: a DAG (`airflow/health_check_reprocess_dag.py`) runs every 15 minutes, checking the API's `/runs` endpoint for failed generations and automatically retrying them via `/generate`. Confirmed running reliably in production: 4 consecutive scheduled runs, 100% success rate, ~15-27 second execution time per run.
 
 ## Known Limitations
 
@@ -102,11 +117,11 @@ Containerized with Docker and deployed on Azure Container Instances (ACI) — ch
 - No authentication currently on the API — anyone with the URL can call `/generate`
 - SQLite is appropriate for this project's scale but would need to move to Postgres for concurrent multi-user production use
 - The Coder agent occasionally splits a single file across multiple implementation steps, which increases LLM call volume and rate-limit exposure
+- The AKS cluster runs a single node — self-healing is demonstrated at the pod level (multi-replica), not node-level failover
+- Grafana and Airflow are configured for demonstration purposes (`SequentialExecutor`, no persistent volume tuning) rather than production-grade HA setups
+- Terraform config was written for the existing manually-provisioned resources; `terraform plan` shows a replace-diff due to incomplete resource attribute coverage — deliberately not applied to avoid destroying the live cluster, a reflection of understanding Terraform's state model rather than a finished IaC migration
 
 ## Learning Outcomes
 
-Building this project involved hands-on work with: multi-agent orchestration and state management in LangGraph, structured output validation with Pydantic, retry/backoff patterns for LLM reliability, REST API design with FastAPI, SQLite schema design, Docker containerization, debugging CI/CD dependency drift between local and remote environments, and end-to-end cloud deployment on Azure (including resource provisioning, container registries, and container instances).
+Building this project involved hands-on work with: multi-agent orchestration and state management in LangGraph, structured output validation with Pydantic, retry/backoff patterns for LLM reliability, REST API design with FastAPI, SQLite schema design, Docker containerization, debugging CI/CD dependency drift between local and remote environments, end-to-end cloud deployment on Azure (including resource provisioning, container registries, and container instances), Kubernetes deployment and operations (Deployments, Services, ConfigMaps, Secrets, liveness/readiness probes, rolling updates), observability tooling (Prometheus, Grafana, Helm chart installation and configuration), workflow orchestration with Apache Airflow (DAG design, task dependencies, XCom, scheduled execution), and infrastructure-as-code fundamentals with Terraform (resource import, state management, plan/apply safety).
 
-## License
-
-MIT
