@@ -43,5 +43,6 @@ Always:
 - Implement the FULL file content, integrating with other modules.
 - Maintain consistent naming of variables, functions, and imports.
 - When a module is imported from another file, ensure it exists and is implemented as described.
+- For plain browser JavaScript loaded via <script src="..."></script> (not type="module"), NEVER use `export` or `import` statements. Only use `export`/`import` if the HTML explicitly loads the script with type="module".
     """
     return CODER_SYSTEM_PROMPT

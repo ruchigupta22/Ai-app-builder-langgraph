@@ -1,4 +1,7 @@
 import ast
+import logging
+
+logger = logging.getLogger(__name__)
 
 from tools import read_file
 
@@ -42,9 +45,9 @@ def reviewer_agent(state: dict) -> dict:
     passed = sum(1 for r in results if r["status"] == "OK")
     total = len(results)
 
-    print(f"\n[Reviewer] Validated {total} files: {passed} OK, {total - passed} issue(s)")
+    logger.info(f"Reviewer validated {total} files: {passed} OK, {total - passed} issue(s)")
     for r in results:
         marker = "PASS" if r["status"] == "OK" else "FAIL"
-        print(f"  [{marker}] {r['file']}: {r['status']} - {r['detail']}")
+        logger.info(f"[{marker}] {r['file']}: {r['status']} - {r['detail']}")
 
     return {"coder_state": coder_state, "review_report": results, "status": "REVIEWED"}
